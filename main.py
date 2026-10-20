@@ -12,7 +12,7 @@ class ChatRequest(BaseModel):
 @app.post("/chat")
 def chat(req: ChatRequest):
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3.5-flash",",
         contents=req.message,
     )
     return {"reply": response.text}
