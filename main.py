@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-import anthropic
+from google import genai
 
 app = FastAPI()
-client = anthropic.Anthropic()
+client = genai.Client()
 
 class ChatRequest(BaseModel):
     session_id: str
@@ -11,10 +11,8 @@ class ChatRequest(BaseModel):
 
 @app.post("/chat")
 def chat(req: ChatRequest):
-    response = client.messages.create(
-        model="claude-sonnet-5-5",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": req.message}],
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=req.message,
     )
-    text = "".join(b.text for b in response.content if b.type == "text")
-    return {"reply": text}
+    return {"reply": response.text}
