@@ -2,7 +2,6 @@ import time
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from google import genai
-from google.genai import errors
 
 app = FastAPI()
 client = genai.Client()
@@ -21,19 +20,16 @@ def ask_gemini(prompt: str) -> str:
                 contents=prompt,
             )
             return response.text
-        except errors.ServerError:
-            # 503 "high demand" jaisi temporary error par wait karke retry
-            time.sleep(2 ** attempt)
-        except errors.ClientError as e:
-            # 404 (model nahi mila), 400 (galat request), 403 (key), 429 (quota)
-            # ke liye retry ka fayda nahi, seedha error bhejo
+        except Exception as e:
+            if "503" in str(e) or "UNAVAILABLE" in str(e):
+                time.sleep(2 ** attempt)
+                continue
             raise HTTPException(status_code=502, detail=f"Gemini error: {e}")
     raise HTTPException(
         status_code=503,
-        detail="Abhi server par zyada demand hai. Thodi der baad dobara try karein.",
+        detail="Server par demand zyada hai, thodi der baad try karein.",
     )
 
 @app.post("/chat")
 def chat(req: ChatRequest):
-    reply = ask_gemini(req.message)
-    return {"reply": reply}
+    return {"reply": ask_gemini(req.message)}
